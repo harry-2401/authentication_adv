@@ -7,8 +7,7 @@ const UserSchema = new Schema<UserType>(
   {
     username: {
       type: String,
-      required: [true, "Please provide a username"],
-      unique: true,
+      required: [true, "Please provide a username"]
     },
     email: {
       type: String,
@@ -34,7 +33,7 @@ const UserSchema = new Schema<UserType>(
 );
 
 UserSchema.pre("save", async function (next): Promise<void> {
-  if (this.isModified("password")) {
+  if (!this.isModified("password")) {
     next();
   }
 
