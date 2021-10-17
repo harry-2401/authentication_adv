@@ -1,6 +1,7 @@
 import { NextFunction, Response, Request } from "express";
 import User from "../models/User";
 import bcrypt from "bcryptjs";
+import ErrorResponse from "../utils/ErrorResponse";
 
 const register = async (
   req: Request,
@@ -13,20 +14,23 @@ const register = async (
     password,
   }: { username: string; email: string; password: string } = req.body;
 
-  try {
-    const user = await User.create({
-      username,
-      email,
-      password,
-    });
+  if (!email || !password || !username) {
+    next(new ErrorResponse("Please provide an email, password and username", 400));
+  }
+  else {
+    try {
+      const user = await User.create({
+        username,
+        email,
+        password,
+      });
 
-    console.log(user)
+      console.log(user);
 
-    res.status(201).json({ success: true, user });
-  } catch (_e) {
-    res
-      .status(500)
-      .json({ success: false, error: (_e as Error).message});
+      res.status(201).json({ success: true, user });
+    } catch (_e) {
+      next(_e);
+    }
   }
 };
 
@@ -38,27 +42,23 @@ const login = async (
   const { email, password }: { email: string; password: string } = req.body;
 
   if (!email || !password) {
-    res
-      .status(400)
-      .json({ success: false, error: "Please provide email and password." });
+    next(new ErrorResponse("Please provide an email and password", 400))
   }
   else {
     try {
       const user = await User.findOne({ email }).select("+password");
       if (!user) {
-        res.status(404).json({ success: false, error: "Invalid email" });
-      } else {
+        next(new ErrorResponse("Invalid email", 404))
+      } else { 
         const isMatch: boolean = await bcrypt.compare(password, user.password);
-        console.log(isMatch);
-        console.log(password, user.password);
         if (!isMatch) {
-          res.status(404).json({ success: false, error: "Invalid password" });
+          next(new ErrorResponse("Invalid password", 404))
         } else {
           res.status(200).json({ success: true, token: "1234567890asd" });
         }
       }
     } catch (_e) {
-      res.status(500).json({ success: false, error: (_e as Error).message });
+      next(_e)
     }
   }
 };
